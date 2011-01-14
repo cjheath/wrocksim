@@ -114,17 +114,29 @@ Rocket = function(div, flight) {
     body.draggable();
     body.dragStart = function(x, y, down, move) {
       var startRadius = radius;
+      var startLength = bodyLength;
       var xDist = 0;
+      var yDist = 0;
+      var elongatingBody = y > noseStart+noseLength+bodyLength/3 ? true : false;
       return {
 	dragUpdate: function(dragging_over, dx, dy, event) {
 	  xDist = xDist+dx;
+	  yDist = yDist+dy;
 	  var new_r = startRadius+xDist;
 	  if (new_r > bore && new_r < 400)
 	    radius = new_r;
+	  var new_l = startLength + yDist;
+	  if (elongatingBody && new_l > 10 && new_l < 2000)
+	  {
+	    bodyLength = new_l;
+	    if (launchTubeLength > bodyLength+noseLength+neckLength-20)
+	      launchTubeLength = bodyLength+noseLength+neckLength-20;
+	  }
 	  makeRocket();
 	},
 	dragCancel: function() {
 	  radius = startRadius;
+	  bodyLength = startLength;
 	  makeRocket();
 	},
 	hide: function() { },
@@ -143,6 +155,8 @@ Rocket = function(div, flight) {
 	  var new_l = startNoseLength+yDist;
 	  if (new_l >= -radius/8-4 && new_l < 800)
 	    noseLength = new_l;
+	  if (launchTubeLength > bodyLength+noseLength+neckLength-20)
+	    launchTubeLength = bodyLength+noseLength+neckLength-20;
 	  makeRocket();
 	},
 	dragCancel: function() {
@@ -179,6 +193,8 @@ Rocket = function(div, flight) {
 	    if (new_reduction >= radius/8 && new_reduction <= 400) {
 	      neckReduction = new_reduction;
 	      neckLength = neckReduction+radius/4;
+	      if (launchTubeLength > bodyLength+noseLength+neckLength-20)
+		launchTubeLength = bodyLength+noseLength+neckLength-20;
 	    }
 	  }
 	  makeRocket();
