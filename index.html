@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <title>
+  WRockSim - Water Rocket Simulator
+  </title>
+  <script src="javascripts/jquery.js" type="text/javascript"></script>
+  <script src="javascripts/raphael.js" type="text/javascript"></script>
+  <script src="javascripts/raphaelle.js" type="text/javascript"></script>
+  <script src="javascripts/wrocksim.js" type="text/javascript"></script>
+
+  <link type="text/css" rel="stylesheet" media="screen" href="css/reset.css">
+
+  <style type="text/css" rel="stylesheet" media="screen">
+    html, body { height: 100%; max-height: 100%; overflow: hidden;}
+    .rocket {
+      width: 50%; height: 100%; background: #422;
+      float: left;
+    }
+    .flight {
+      width: 50%; height: 100%; background: #224;
+      float: right;
+    }
+  </style>
+</head>
+
+  <body>
+    <div class="rocket" id="rocket">
+    </div>
+    <div class="flight" id="flight">
+    </div>
+
+    <script type="text/javascript">
+      $(document).ready(function() {
+	var sim = new Flight('flight');
+	var rocket = new Rocket('rocket', sim);
+      });
+
+    </script>
+  </body>
+</html>
