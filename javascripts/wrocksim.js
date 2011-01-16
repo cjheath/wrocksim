@@ -30,7 +30,7 @@ Rocket = function(div, flight) {
   var noseHandle = null;
   var reductionHandle = null;
 
-  // We can drag invisible water by clicking on the neck extension (on the launch tube)
+  // We can drag water into existence by clicking on the reducing nozzle section:
   var waterDragger;
 
   var makeNose = function() {
@@ -208,8 +208,6 @@ Rocket = function(div, flight) {
     water.draggable();
     water.dragStart = function(x, y, down, move) {
       var startWaterLevel = waterLevel;
-      var startNeckReduction = neckReduction;
-      var startNeckRoundness = neckRoundness;
       var yDist = 0;
       var xDist = 0;
       waterDragger = {
@@ -234,6 +232,11 @@ Rocket = function(div, flight) {
       return waterDragger;
     };
 
+    nozzle.draggable();
+    nozzle.dragStart = function() {
+      return waterDragger;
+    }
+
     // Make waterMask draggable to change neck shape
     waterMask.draggable();
     waterMask.dragStart = function(x, y, down, move) {
@@ -246,9 +249,9 @@ Rocket = function(div, flight) {
 	  yDist = yDist+dy;
 	  xDist = xDist+dx;
 	  var new_round = startNeckRoundness+xDist/100.0;
-	  if (new_round < 0 && new_round <= 1.0)
+	  if (new_round < 0)
 	    new_round = 0;
-	  if (new_round < 1.0)
+	  if (new_round > 1.0)
 	    new_round = 1.0;
 	  neckRoundness = new_round;
 	  var new_reduction = startNeckReduction+yDist;
@@ -283,7 +286,7 @@ Rocket = function(div, flight) {
       var startBore = bore;
       var yDist = 0;
       var xDist = 0;
-      var launchTubeDragger = {
+      return {
 	dragUpdate: function(dragging_over, dx, dy, event) {
 	  yDist = yDist+dy;
 	  xDist = xDist+dx;
@@ -305,12 +308,6 @@ Rocket = function(div, flight) {
 	hide: function() { },
 	show: function() { }
       };
-      // If the water is low or zero, clicking on the next extension drags the water
-      if (waterLevel < 10 &&
-	  y > noseStart+noseLength+bodyLength+neckReduction &&
-	  y < noseStart+noseLength+bodyLength+neckLength)
-	return waterDragger;
-      return launchTubeDragger;
     };
 
   };
