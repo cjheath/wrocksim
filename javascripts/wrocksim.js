@@ -17,7 +17,7 @@ Rocket = function(div, flight) {
   var neckRoundness = 0.8;		// 0 = conical, 1 = fully rounded
   var neckSplit = 0.8;			// How much of the curvature is near max diameter vs neck
   var launchTubeLength = 500;		// How long is the launch tube?
-  var waterLevel = 100;
+  var waterLevel = 200;
 
   // Current rocket parts, removed on making new ones
   var nose = null;
@@ -25,9 +25,13 @@ Rocket = function(div, flight) {
   var nozzle = null;
   var launchTube = null;
   var water = null;
+  var waterMask = null;
   var bodyHandle = null;
   var noseHandle = null;
   var reductionHandle = null;
+
+  // We can drag invisible water by clicking on the neck extension (on the launch tube)
+  var waterDragger;
 
   var makeNose = function() {
     if (!nose) nose = r.path();
@@ -47,7 +51,7 @@ Rocket = function(div, flight) {
       'c', 0, -radius/8, radius*2, -radius/8, radius*2, 0,
       'l', 0, bodyLength,
       'c', 0, radius/8, -radius*2, radius/8, -radius*2, 0,
-      'l', 0, -bodyLength,
+      'l', 0, -bodyLength
     ]});
     body.attr({fill: "#E8E8E8", stroke: "#AAA", "stroke-width": 2});
   };
@@ -92,19 +96,43 @@ Rocket = function(div, flight) {
   };
 
   var makeWater = function() {
-    if (!water) water = r.path();
-    var curvature = (bodyLength/2-waterLevel)/(bodyLength/2);
-    water.attr({path: nozzlePath() +
-      [	'l', 0, -waterLevel,
-	'c', 0, curvature*radius/8, -radius*2, curvature*radius/8, -radius*2, 0,
-	'c', 0, -curvature*radius/8, radius*2, -curvature*radius/8, radius*2, 0,
-	'c', 0, curvature*radius/8, -radius*2, curvature*radius/8, -radius*2, 0,
-        // 'l', -radius*2, 0,
-	'l', 0, waterLevel
-      ]
+    if (!water) { water = r.path(); waterMask = r.path(); }
+    var ellipse = waterLevel > neckReduction;
+    var curvature = 
+      ellipse ? (bodyLength/2-(waterLevel-neckReduction))/(bodyLength/2) : waterLevel/neckReduction;
+    water.attr({
+      path:
+	[ 'M', centreX-radius, noseStart+noseLength+bodyLength+neckReduction,
+	  'l', 0, -waterLevel,
+	  'c', 0, -curvature*radius/8, radius*2, -curvature*radius/8, radius*2, 0
+	] +
+	(ellipse ?
+	  [ 'c', 0, curvature*radius/8, -radius*2, curvature*radius/8, -radius*2, 0,
+	    'c', 0, -curvature*radius/8, radius*2, -curvature*radius/8, radius*2, 0
+	  ] : []) + [	// Ugly formatting, but keeps jslint happy
+	  'l', 0, waterLevel,
+	  'z'
+	],
+      fill: "#03F",
+      "fill-opacity": 0.2,
+      "stroke-opacity": 0.1
     });
-    water.attr({fill: "#03F", "fill-opacity": 0.2, "stroke-opacity": 0.1});
-    water.toFront();
+    if (waterLevel === 0)
+      water.hide();
+    else
+      water.show();
+
+    waterMask.attr({
+      path:
+	nozzlePath() +
+	[ 'l', 0, neckLength,
+	  'l', -2*radius, 0,
+	  'l', 0, -neckLength
+	  ],
+      // Pinch the colour from the div containing the canvas:
+      fill: $(r.canvas).parent().css("background-color"),
+      stroke: null
+      });
     return water;
   };
 
@@ -126,8 +154,12 @@ Rocket = function(div, flight) {
 	  if (new_r > bore && new_r < 400)
 	    radius = new_r;
 	  var new_l = startLength + yDist;
-	  if (elongatingBody && new_l > 10 && new_l < 2000)
+	  if (elongatingBody)
 	  {
+	    if (new_l <= 10)
+	      new_l = 10;
+	    if (new_l >= 2000)
+	      new_l = 2000;
 	    bodyLength = new_l;
 	    if (launchTubeLength > bodyLength+noseLength+neckLength-20)
 	      launchTubeLength = bodyLength+noseLength+neckLength-20;
@@ -153,8 +185,12 @@ Rocket = function(div, flight) {
 	dragUpdate: function(dragging_over, dx, dy, event) {
 	  yDist = yDist+dy;
 	  var new_l = startNoseLength+yDist;
-	  if (new_l >= -radius/8-4 && new_l < 800)
-	    noseLength = new_l;
+	  var min_l = -radius/8-4;
+	  if (new_l < min_l)
+	    new_l = min_l;
+	  if (new_l > 800)
+	    new_l = 800;
+	  noseLength = new_l;
 	  if (launchTubeLength > bodyLength+noseLength+neckLength-20)
 	    launchTubeLength = bodyLength+noseLength+neckLength-20;
 	  makeRocket();
@@ -174,33 +210,65 @@ Rocket = function(div, flight) {
       var startWaterLevel = waterLevel;
       var startNeckReduction = neckReduction;
       var startNeckRoundness = neckRoundness;
-      var draggingWater = y < noseStart+noseLength+bodyLength ? true : false;
+      var yDist = 0;
+      var xDist = 0;
+      waterDragger = {
+	dragUpdate: function(dragging_over, dx, dy, event) {
+	  yDist = yDist+dy;
+	  xDist = xDist+dx;
+	  var new_l = startWaterLevel-yDist;
+	  if (new_l < 0)
+	    new_l = 0;
+	  if (new_l > bodyLength+neckReduction)
+	    new_l = bodyLength+neckReduction;
+	  waterLevel = new_l;
+	  makeRocket();
+	},
+	dragCancel: function() {
+	  waterLevel = startWaterLevel;
+	  makeRocket();
+	},
+	hide: function() { },
+	show: function() { }
+      };
+      return waterDragger;
+    };
+
+    // Make waterMask draggable to change neck shape
+    waterMask.draggable();
+    waterMask.dragStart = function(x, y, down, move) {
+      var startNeckReduction = neckReduction;
+      var startNeckRoundness = neckRoundness;
       var yDist = 0;
       var xDist = 0;
       return {
 	dragUpdate: function(dragging_over, dx, dy, event) {
 	  yDist = yDist+dy;
 	  xDist = xDist+dx;
-	  if (draggingWater) {
-	    var new_l = startWaterLevel-yDist;
-	    if (new_l >= 0 && new_l <= bodyLength)
-	      waterLevel = new_l;
-	  } else {
-	    var new_round = startNeckRoundness+xDist/100.0;
-	    if (new_round >= 0 && new_round <= 1.0)
-	      neckRoundness = new_round;
-	    var new_reduction = startNeckReduction+yDist;
-	    if (new_reduction >= radius/8 && new_reduction <= 400) {
-	      neckReduction = new_reduction;
-	      neckLength = neckReduction+radius/4;
-	      if (launchTubeLength > bodyLength+noseLength+neckLength-20)
-		launchTubeLength = bodyLength+noseLength+neckLength-20;
-	    }
-	  }
+	  var new_round = startNeckRoundness+xDist/100.0;
+	  if (new_round < 0 && new_round <= 1.0)
+	    new_round = 0;
+	  if (new_round < 1.0)
+	    new_round = 1.0;
+	  neckRoundness = new_round;
+	  var new_reduction = startNeckReduction+yDist;
+	  if (new_reduction < radius/8)
+	    new_reduction = radius/8;
+	  if (new_reduction > 400)
+	    new_reduction = 400;
+	  neckReduction = new_reduction;
+	  neckLength = neckReduction+radius/4;
+	  if (launchTubeLength > bodyLength+noseLength+neckLength-20)
+	    launchTubeLength = bodyLength+noseLength+neckLength-20;
 	  makeRocket();
 	},
+	dragFinish: function() {
+	  xDist = yDist = 0;
+	},
 	dragCancel: function() {
-	  waterLevel = startWaterLevel;
+	  neckReduction = startNeckReduction;
+	  neckRoundness = startNeckRoundness;
+	  xDist = yDist = 0;
 	  makeRocket();
 	},
 	hide: function() { },
@@ -215,13 +283,16 @@ Rocket = function(div, flight) {
       var startBore = bore;
       var yDist = 0;
       var xDist = 0;
-      return {
+      var launchTubeDragger = {
 	dragUpdate: function(dragging_over, dx, dy, event) {
 	  yDist = yDist+dy;
 	  xDist = xDist+dx;
 	  var new_l = startLaunchTubeLength-yDist;
-	  if (new_l >= 0 && new_l <= noseLength+bodyLength+neckLength-20)
-	    launchTubeLength = new_l;
+	  if (new_l < 0 && new_l <= noseLength+bodyLength+neckLength-20)
+	    new_l = 0;
+	  if (new_l > noseLength+bodyLength+neckLength-20)
+	    new_l = noseLength+bodyLength+neckLength-20;
+	  launchTubeLength = new_l;
 	  var new_b = startBore+xDist/5;
 	  if (new_b >= 3 && new_b <= radius-2)
 	    bore = new_b;
@@ -234,6 +305,12 @@ Rocket = function(div, flight) {
 	hide: function() { },
 	show: function() { }
       };
+      // If the water is low or zero, clicking on the next extension drags the water
+      if (waterLevel < 10 &&
+	  y > noseStart+noseLength+bodyLength+neckReduction &&
+	  y < noseStart+noseLength+bodyLength+neckLength)
+	return waterDragger;
+      return launchTubeDragger;
     };
 
   };
@@ -244,7 +321,7 @@ Rocket = function(div, flight) {
     makeNozzle();
     makeLaunchTube();
     makeWater();
-  }
+  };
   makeRocket();
   dragHandlers();
 };
