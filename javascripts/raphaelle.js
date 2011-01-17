@@ -158,7 +158,8 @@ Raphael.el.draggable = function(options) {
     };
 
     if (reluctance == 0 && handle.dragStart) {
-      var o = handle.dragStart(0, 0, event, event);
+      var position = canvas_offset(handle.paper.canvas);
+      var o = handle.dragStart(event.clientX-position.left, event.clientY-position.top, event, event);
       if (!o) return false;
       drag_obj = o;
       started = true;
