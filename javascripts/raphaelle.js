@@ -87,24 +87,6 @@ Raphael.el.draggable = function(options) {
       if (!paper) return null;	// Something was deleted
       if (drag_obj) drag_obj.hide();
       var dragging_over = document.elementFromPoint(event.clientX, event.clientY);
-      if ($.browser.opera && dragging_over.tagName === 'svg') {
-	// Opera's elementFromPoint always returns the SVG object.
-	var svg = paper.canvas;
-	var so = $(svg).offset();
-	// var so = canvas_offset(svg);
-	var sr = svg.createSVGRect();
-	sr.x = event.clientX-so.left;
-	sr.y = event.clientY-so.top;
-	sr.width = sr.height = 1;
-	var hits = svg.getIntersectionList(sr, null);
-	if (hits.length > 0)
-	{
-	 dragging_over = hits[hits.length-1];
-	 // drag_obj.hide() probably hasn't taken effect yet. Hope it's not a compound object:
-	 if (dragging_over == drag_obj.node && hits.length > 1)
-	   dragging_over = hits[hits.length-2];
-	}
-      }
       if (drag_obj) drag_obj.show();
       if (!dragging_over)
 	return null;
@@ -120,7 +102,7 @@ Raphael.el.draggable = function(options) {
     };
 
     var canvas_offset = function(canvas) {
-      if (!$.browser.opera && canvas.getClientRects)
+      if (canvas.getClientRects)
       {
 	// This works around a bug in Chrome 8.0.552.215
 	var cr = canvas.getClientRects()[0];
@@ -211,12 +193,6 @@ Raphael.el.draggable = function(options) {
       $(document).unbind('mouseup', mouseup);
       $(document).unbind('mousemove', mousemove);
       $(document).unbind('keydown', keydown);
-      if ($.browser.msie) {
-	// Rebind the mousedown if it got lost when the node was recreated:
-	if (handle.originalDraggableNode != handle.node)
-	  $(handle.node).bind('mousedown', mousedown);
-	handle.originalDraggableNode = handle.node;
-      }
       handle.paper.safari();
 
       started = false;

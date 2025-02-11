@@ -311,6 +311,11 @@ Rocket = function(div, flight) {
 
   };
 
+  var makeLaunchButton = function() {
+    r.circle(400,400, 50).attr({fill: "r(0.15, 0.25)#f88-#d00"});
+    r.text(400,400, "LAUNCH").attr({"text-anchor": "middle", "font-size": 20, "font-weight": 800, fill: "#008"});
+  };
+
   var makeRocket = function() {
     makeNose();
     makeBody();
@@ -319,6 +324,7 @@ Rocket = function(div, flight) {
     makeWater();
   };
   makeRocket();
+  //makeLaunchButton();
   dragHandlers();
 };
 
